@@ -68,3 +68,48 @@ afk_df    <- bind_rows(lapply(afk_events_flat,    as.data.frame))
 
 
 
+
+##### random stuff to be deleted
+
+library(ggplot2)
+library(dplyr)
+
+#First lemme remove the loginwindow data which is rubbish
+window_df <- window_df %>%
+  filter(app != "loginwindow")
+
+# Summarise duration per app
+app_summary <- window_df %>%
+  group_by(app) %>%
+  summarise(total_duration = sum(as.numeric(duration), na.rm = TRUE)) %>%
+  arrange(desc(total_duration)) %>%
+  mutate(proportion = total_duration / sum(total_duration))
+
+# Split into "keep" and "other" based on cumulative proportion
+app_summary <- app_summary %>%
+  mutate(cumulative = cumsum(proportion),
+         app_label = ifelse(cumulative > 0.95 & lag(cumulative, default = 0) < 0.95 | 
+                              cumulative > 0.95, "Other", app))
+
+# Collapse "Other" into one row
+app_plot <- app_summary %>%
+  group_by(app_label) %>%
+  summarise(total_duration = sum(total_duration)) %>%
+  arrange(desc(total_duration)) %>%
+  mutate(proportion = total_duration / sum(total_duration))
+
+# Move "Other" to the end
+app_plot <- bind_rows(
+  app_plot %>% filter(app_label != "Other"),
+  app_plot %>% filter(app_label == "Other")
+)
+
+# Plot
+ggplot(app_plot, aes(x = "", y = total_duration, fill = app_label)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +
+  theme_void() +
+  theme(legend.position = "right") +
+  labs(fill = "App", title = "Time spent per app")
+``
+
