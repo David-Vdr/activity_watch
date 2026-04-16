@@ -33,6 +33,7 @@ all_bucket_names <- names(parsed$buckets) #extracting the "aw-watcher-afk" and "
 
 window_bucket_names <- all_bucket_names[grepl("aw-watcher-window", all_bucket_names)] #identifies any bucket names with window in it
 afk_bucket_names    <- all_bucket_names[grepl("aw-watcher-afk",    all_bucket_names)] #identifies any bucket names with afk in it
+web_bucket_names <- all_bucket_names[grepl("aw-watcher-web", all_bucket_names)]
 
 # taking out only the individual events so that i end up with lists of all events (across multiple possible sources/hosts of data, in my case macbook and radboud network for some reason)
 window_events_raw <- unlist(
@@ -63,7 +64,24 @@ library(dplyr)
 window_df <- bind_rows(lapply(window_events_flat, as.data.frame))
 afk_df    <- bind_rows(lapply(afk_events_flat,    as.data.frame))
 
+# running everything on the web bucket in one go within an if statement to avoid errors, for participant data without extension:
+if (length(web_bucket_names) == 0) {
+  message("No web watcher buckets found — skipping web_df creation.")
+  web_df <- NULL
+} else {
+  web_events_raw <- unlist(
+    lapply(web_bucket_names, function(b) parsed$buckets[[b]]$events),
+    recursive = FALSE
+  )
+  web_events_flat <- lapply(web_events_raw, flatten_event)
+  web_df <- bind_rows(lapply(web_events_flat, as.data.frame))
+}
+
 # Data is now ready to be cleaned and inspected
+
+
+
+
 
 
 
